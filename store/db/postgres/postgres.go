@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -30,4 +31,17 @@ func NewDB() (store.Driver, error) {
 		db: db,
 	}
 	return driver, nil
+}
+
+func (d *DB) Migrate(ctx context.Context) error {
+	buf, err := os.ReadFile("store/db/postgres/SCHEMA.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read latest schema file: %w", err)
+	}
+	stmt := string(buf)
+	_, err = d.db.ExecContext(ctx, stmt)
+	if err != nil {
+		return err
+	}
+	return nil
 }
