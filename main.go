@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/deepaksing/FampayAssignment/store"
 	"github.com/deepaksing/FampayAssignment/store/db/postgres"
-	"github.com/deepaksing/FampayAssignment/store/youtube"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -31,6 +31,7 @@ func main() {
 		log.Fatalf("Error migrating database: %v", err)
 	}
 
+	storeConn := store.NewStore(dbConn)
 	// Start fetching and storing videos
-	youtube.FetchAndStoreVideos()
+	store.FetchAndStoreVideos(storeConn)
 }

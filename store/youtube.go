@@ -1,4 +1,4 @@
-package youtube
+package store
 
 import (
 	"flag"
@@ -75,7 +75,7 @@ func fetchLatestVideos() ([]*Video, error) {
 	return allVideos, nil
 }
 
-func fetchAndStore() error {
+func fetchAndStore(s *Store) error {
 	//Fetch latest videos from YouTube API
 	videos, err := fetchLatestVideos()
 	if err != nil {
@@ -90,23 +90,27 @@ func fetchAndStore() error {
 		log.Println()
 	}
 
+	if err := s.driver.StoreVideosInDB(videos); err != nil {
+		return err
+	}
+
 	log.Println("Videos fetched and stored successfully.")
 	return nil
 }
 
-func fetchVideoConcurrently(videoch chan *time.Ticker) {
+func fetchVideoConcurrently(s *Store, videoch chan *time.Ticker) {
 	// Create a ticker to trigger fetching videos at regular intervals
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	if err := fetchAndStore(); err != nil {
+	if err := fetchAndStore(s); err != nil {
 		log.Println("Error fetching and storing videos:", err)
 	}
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := fetchAndStore(); err != nil {
+			if err := fetchAndStore(s); err != nil {
 				log.Println("Error fetching and storing videos:", err)
 			}
 			videoch <- ticker
@@ -115,9 +119,9 @@ func fetchVideoConcurrently(videoch chan *time.Ticker) {
 
 }
 
-func FetchAndStoreVideos() {
+func FetchAndStoreVideos(s *Store) {
 	videoch := make(chan *time.Ticker)
-	go fetchVideoConcurrently(videoch)
+	go fetchVideoConcurrently(s, videoch)
 
 	for timer := range videoch {
 		fmt.Println(timer)

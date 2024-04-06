@@ -45,3 +45,20 @@ func (d *DB) Migrate(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (d *DB) StoreVideosInDB(videos []*store.Video) error {
+	stmt, err := d.db.Prepare("INSERT INTO videos(title, description, published_at, thumbnails) VALUES($1, $2, $3, $4)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, video := range videos {
+		_, err := stmt.Exec(video.Title, video.Description, video.PublishedAt, video.Thumbnails)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
