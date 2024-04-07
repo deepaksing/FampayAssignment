@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/deepaksing/FampayAssignment/server"
 	"github.com/deepaksing/FampayAssignment/store"
@@ -10,6 +11,26 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
+
+func fetchAndStoreVideo(ctx context.Context, storeConn *store.Store) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	if err := store.FetchAndStore(storeConn); err != nil {
+		log.Println("Error fetching and storing videos:", err)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return // Exit goroutine if context is canceled
+		case <-ticker.C:
+			if err := store.FetchAndStore(storeConn); err != nil {
+				log.Println("Error fetching and storing videos:", err)
+			}
+		}
+	}
+}
 
 func main() {
 
@@ -33,9 +54,10 @@ func main() {
 	}
 
 	storeConn := store.NewStore(dbConn)
-	// Start fetching and storing videos
-	store.FetchAndStoreVideos(storeConn)
 
+	go fetchAndStoreVideo(ctx, storeConn)
+
+	//API routes are registerd here
 	server := server.NewServer(storeConn)
 	server.StartServer()
 }

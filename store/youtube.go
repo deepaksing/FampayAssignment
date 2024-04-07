@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +19,7 @@ var (
 )
 
 type Video struct {
+	ID          int32
 	Title       string
 	Description string
 	PublishedAt string
@@ -79,7 +81,7 @@ func fetchLatestVideos() ([]*Video, error) {
 	return allVideos, nil
 }
 
-func fetchAndStore(s *Store) error {
+func FetchAndStore(s *Store) error {
 	//Fetch latest videos from YouTube API
 	videos, err := fetchLatestVideos()
 	if err != nil {
@@ -94,32 +96,18 @@ func fetchAndStore(s *Store) error {
 	return nil
 }
 
-func fetchVideoConcurrently(s *Store, videoch chan *time.Ticker) {
-	// Create a ticker to trigger fetching videos at regular intervals
-	ticker := time.NewTicker(100 * time.Second)
-	defer ticker.Stop()
-
-	if err := fetchAndStore(s); err != nil {
-		log.Println("Error fetching and storing videos:", err)
+func (s *Store) GetVideosFromDB(ctx context.Context, pageNum int, pageSize int) ([]*Video, error) {
+	videos, err := s.driver.GetVideo(ctx, pageNum, pageSize)
+	if err != nil {
+		return nil, err
 	}
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := fetchAndStore(s); err != nil {
-				log.Println("Error fetching and storing videos:", err)
-			}
-			videoch <- ticker
-		}
-	}
-
+	return videos, nil
 }
 
-func FetchAndStoreVideos(s *Store) {
-	videoch := make(chan *time.Ticker)
-	go fetchVideoConcurrently(s, videoch)
-
-	for timer := range videoch {
-		fmt.Println(timer)
+func (s *Store) SearchInVideos(ctx context.Context, query string) ([]*Video, error) {
+	videos, err := s.driver.SearchVideo(ctx, query)
+	if err != nil {
+		return nil, err
 	}
+	return videos, nil
 }

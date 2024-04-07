@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"fmt"
-
 	"github.com/deepaksing/FampayAssignment/store"
 	"github.com/labstack/echo"
 )
@@ -19,5 +17,5 @@ func NewApiv1Service(store *store.Store) *ApiV1Service {
 
 func (a *ApiV1Service) Register(rootGroup *echo.Group) {
 	apiv1Group := rootGroup.Group("/api/v1")
-	fmt.Println(apiv1Group)
+	a.RegisterVideoRoute(apiv1Group)
 }
