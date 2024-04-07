@@ -1,5 +1,10 @@
 # FampayAssignment
 
+## Update enviornment variables
+
+    update enviornment variables in .env from .env.example file
+    update docker-compose.yml files enviornment variables.
+
 ## Run Docker compose
 
     docker-compose up --build
