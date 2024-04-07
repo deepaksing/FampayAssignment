@@ -90,7 +90,15 @@ func (d *DB) GetVideo(ctx context.Context, pageNum int, pageSize int) ([]*store.
 func (d *DB) SearchVideo(ctx context.Context, query string) ([]*store.Video, error) {
 	matchedVideos := []*store.Video{}
 
-	rows, err := d.db.Query("SELECT title, description FROM videos WHERE title ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%'", query)
+	// Construct the SQL query using PostgreSQL's full-text search capabilities
+	sqlQuery := `
+        SELECT title, description
+        FROM videos
+        WHERE to_tsvector('english', title) @@ plainto_tsquery('english', $1)
+        OR to_tsvector('english', description) @@ plainto_tsquery('english', $1)
+    `
+
+	rows, err := d.db.Query(sqlQuery, query)
 	if err != nil {
 		return nil, err
 	}
