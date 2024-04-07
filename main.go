@@ -13,7 +13,7 @@ import (
 )
 
 func fetchAndStoreVideo(ctx context.Context, storeConn *store.Store) {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(40 * time.Second)
 	defer ticker.Stop()
 
 	if err := store.FetchAndStore(storeConn); err != nil {

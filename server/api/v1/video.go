@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,8 +39,6 @@ func (s *ApiV1Service) GetVideos(c echo.Context) error {
 func (s *ApiV1Service) SearchVideos(c echo.Context) error {
 	query := strings.TrimSpace(c.QueryParam("query"))
 	query = strings.ToLower(query)
-
-	fmt.Println(query)
 
 	matchedVideos, err := s.store.SearchInVideos(c.Request().Context(), query)
 	if err != nil {

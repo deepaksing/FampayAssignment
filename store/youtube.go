@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"google.golang.org/api/googleapi/transport"
@@ -16,6 +16,7 @@ var (
 	query           = flag.String("query", "Cricket", "Search term")
 	maxResults      = flag.Int64("max-results", 50, "Max YouTube results")
 	lastPublishedAt = time.Now().AddDate(0, 0, -7)
+	developerKey    = os.Getenv("YOUTUBE_API_KEY")
 )
 
 type Video struct {
@@ -26,8 +27,6 @@ type Video struct {
 	Thumbnails  string
 }
 
-const developerKey = "AIzaSyABh7mwq9jLyiWaIjEWSX7gTsJXgg_8XZA"
-
 func fetchLatestVideos() ([]*Video, error) {
 	client := &http.Client{
 		Transport: &transport.APIKey{Key: developerKey},
@@ -37,26 +36,23 @@ func fetchLatestVideos() ([]*Video, error) {
 	if err != nil {
 		log.Fatalf("Error creating new YouTube client: %v", err)
 	}
-	fmt.Println(lastPublishedAt.Format(time.RFC3339))
-	fmt.Println(lastPublishedAt)
+
 	call := service.Search.List([]string{"id", "snippet"}).
 		Q(*query).
-		Type("video"). // Search only for videos
+		Type("video").
 		Order("date").
-		MaxResults(*maxResults).                             // Order by date
-		PublishedAfter(lastPublishedAt.Format(time.RFC3339)) // Fetch videos published after the specified date-time
+		MaxResults(*maxResults).
+		PublishedAfter(lastPublishedAt.Format(time.RFC3339))
 
-	// Group video, channel, and playlist results in separate lists.
 	var allVideos []*Video
 
 	// Fetch all pages of search results
 	for {
 		response, err := call.Do()
 		if err != nil {
-			log.Fatalf("Error making search API call: %v", err)
+			return nil, err
 		}
 
-		// Iterate through each item and add it to the videos slice.
 		for _, item := range response.Items {
 			if item.Id.Kind == "youtube#video" {
 				video := &Video{
@@ -82,7 +78,6 @@ func fetchLatestVideos() ([]*Video, error) {
 }
 
 func FetchAndStore(s *Store) error {
-	//Fetch latest videos from YouTube API
 	videos, err := fetchLatestVideos()
 	if err != nil {
 		return err
