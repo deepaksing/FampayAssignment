@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	query          = flag.String("query", "Cricket", "Search term")
-	maxResults     = flag.Int64("max-results", 50, "Max YouTube results")
-	publishedAfter = flag.String("published-after", "2024-03-01T00:00:00Z", "Fetch videos published after this date-time (RFC3339)")
+	query           = flag.String("query", "Cricket", "Search term")
+	maxResults      = flag.Int64("max-results", 50, "Max YouTube results")
+	lastPublishedAt = time.Now().AddDate(0, 0, -7)
 )
 
 type Video struct {
@@ -24,7 +24,7 @@ type Video struct {
 	Thumbnails  string
 }
 
-const developerKey = "AIzaSyACfy3-YT_HoHy44aeGwu2BystV-4opKBk"
+const developerKey = "AIzaSyABh7mwq9jLyiWaIjEWSX7gTsJXgg_8XZA"
 
 func fetchLatestVideos() ([]*Video, error) {
 	client := &http.Client{
@@ -35,12 +35,14 @@ func fetchLatestVideos() ([]*Video, error) {
 	if err != nil {
 		log.Fatalf("Error creating new YouTube client: %v", err)
 	}
+	fmt.Println(lastPublishedAt.Format(time.RFC3339))
+	fmt.Println(lastPublishedAt)
 	call := service.Search.List([]string{"id", "snippet"}).
 		Q(*query).
 		Type("video"). // Search only for videos
 		Order("date").
-		MaxResults(*maxResults).        // Order by date
-		PublishedAfter(*publishedAfter) // Fetch videos published after the specified date-time
+		MaxResults(*maxResults).                             // Order by date
+		PublishedAfter(lastPublishedAt.Format(time.RFC3339)) // Fetch videos published after the specified date-time
 
 	// Group video, channel, and playlist results in separate lists.
 	var allVideos []*Video
@@ -62,6 +64,7 @@ func fetchLatestVideos() ([]*Video, error) {
 					Thumbnails:  item.Snippet.Thumbnails.Default.Url,
 				}
 				allVideos = append(allVideos, video)
+
 			}
 		}
 
@@ -72,6 +75,7 @@ func fetchLatestVideos() ([]*Video, error) {
 		call.PageToken(response.NextPageToken)
 	}
 
+	lastPublishedAt = time.Now()
 	return allVideos, nil
 }
 
@@ -80,14 +84,6 @@ func fetchAndStore(s *Store) error {
 	videos, err := fetchLatestVideos()
 	if err != nil {
 		return err
-	}
-
-	for _, video := range videos {
-		log.Printf("Title: %s\n", video.Title)
-		log.Printf("Description: %s\n", video.Description)
-		log.Printf("PublishedAt: %s\n", video.PublishedAt)
-		log.Printf("Thumbnails: %s\n", video.Thumbnails)
-		log.Println()
 	}
 
 	if err := s.driver.StoreVideosInDB(videos); err != nil {
@@ -100,7 +96,7 @@ func fetchAndStore(s *Store) error {
 
 func fetchVideoConcurrently(s *Store, videoch chan *time.Ticker) {
 	// Create a ticker to trigger fetching videos at regular intervals
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(100 * time.Second)
 	defer ticker.Stop()
 
 	if err := fetchAndStore(s); err != nil {

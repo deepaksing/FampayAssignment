@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/deepaksing/FampayAssignment/server"
 	"github.com/deepaksing/FampayAssignment/store"
 	"github.com/deepaksing/FampayAssignment/store/db/postgres"
 	"github.com/joho/godotenv"
@@ -34,4 +35,7 @@ func main() {
 	storeConn := store.NewStore(dbConn)
 	// Start fetching and storing videos
 	store.FetchAndStoreVideos(storeConn)
+
+	server := server.NewServer(storeConn)
+	server.StartServer()
 }
